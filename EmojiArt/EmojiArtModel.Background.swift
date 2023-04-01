@@ -12,7 +12,7 @@ extension EmojiArtModel{
     enum Background {
         case blank
         case url(URL) // (URL)表示需要关联数据
-        case imageData(Date)
+        case imageData(Data)
 
         // 语法糖，用于直接获取关联数据
         var url: URL? {
