@@ -2,6 +2,7 @@
 //  EmojiArtDocument.swift
 //  EmojiArt
 //
+//  VM of MVVM
 //  Created by huhu on 2023/4/1.
 //
 
@@ -11,17 +12,23 @@ class EmojiArtDocument: ObservableObject
 {
     // @Published表示当emojiArt发生变化时，会自动通知所有的观察者
     @Published private(set) var emojiArt: EmojiArtModel
-
+    
     init(){
         emojiArt = EmojiArtModel()
-      
-    }
+        // 测试用,添加几个不同的emoji
+        emojiArt.addEmoji("👻", at: (-200, 100), size: 80)
+        emojiArt.addEmoji("🎃", at: (100, 0), size: 40)
+        emojiArt.addEmoji("🤡", at: (0, -100), size: 30)
 
+
+        
+    }
+    
     // 方便使用EmojiArt.Emoji直接获取emojis
     var emojis: [EmojiArtModel.Emoji] { emojiArt.emojis }
-      var background: EmojiArtModel.Background { emojiArt.background }
+    var background: EmojiArtModel.Background { emojiArt.background }
     
-     // MARK: - Intent(s)
+    // MARK: - Intent(s) 通过这些方法来修改emojiArt
     
     func setBackground(_ background: EmojiArtModel.Background) {
         emojiArt.background = background
@@ -43,6 +50,6 @@ class EmojiArtDocument: ObservableObject
             emojiArt.emojis[index].size = Int((CGFloat(emojiArt.emojis[index].size) * scale).rounded(.toNearestOrAwayFromZero))
         }
     }
-  
-
+    
+    
 }

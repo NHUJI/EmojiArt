@@ -29,7 +29,9 @@ struct EmojiArtModel {
     }
 
     init(){} // 设置EmojiArtModel的默认构造函数(什么都不干),避免被用来设置背景和emoji
-    private var uniqueEmojiId = 0 // 用于生成唯一的id
+    private var uniqueEmojiId = 0 // 用于给每个emoji分配唯一的id
+
+    
 
     // 由于修改了本身的属性，所以需要加上mutating, (x: Int, y: Int)是一个元组(tuple)，用于表示一个坐标
     mutating func addEmoji(_ text: String, at location: (x: Int, y: Int), size: Int) {
