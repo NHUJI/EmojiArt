@@ -113,6 +113,7 @@ extension Character {
 // extracting the actual url to an image from a url that might contain other info
 // (essentially looking for the imgurl key)
 // imgurl is a "well known" key that can be embedded in a url that says what the actual image url is
+// 有时候网络图片会在外面包一层来源(比如Google什么的),所以需要用这个扩展来直接获得图片的URL
 
 extension URL {
     var imageURL: URL {
@@ -218,6 +219,7 @@ extension CGFloat: RawRepresentable { }
 // would probably not be a very efficient use of your time
 // (though I'm certainly not going to say you shouldn't!)
 // (just trying to help you optimize your valuable time this quarter)
+
 
 extension Array where Element == NSItemProvider {
     func loadObjects<T>(ofType theType: T.Type, firstOnly: Bool = false, using load: @escaping (T) -> Void) -> Bool where T: NSItemProviderReading {

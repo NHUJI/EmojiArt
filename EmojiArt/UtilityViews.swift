@@ -10,6 +10,7 @@ import SwiftUI
 
 // syntactic sure to be able to pass an optional UIImage to Image
 // (normally it would only take a non-optional UIImage)
+// 接受可选的UIImage，如果不为空则显示，否则不显示
 
 struct OptionalImage: View {
     var uiImage: UIImage?
