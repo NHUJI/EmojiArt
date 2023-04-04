@@ -31,11 +31,16 @@ struct EmojiArtDocumentView: View {
                     OptionalImage(uiImage: document.backgroundImage)
                         .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                 )
-                // 表情显示
-                ForEach(document.emojis) { emoji in
-                    Text(emoji.text)
-                        .font(.system(size: fontSize(for: emoji)))
-                        .position(position(for: emoji, in: geometry))
+                // 显示背景图片加载状态
+                if document.backgroundImageFetchStatus == .fetching {
+                    ProgressView().scaleEffect(2) // 加载图标
+                } else {
+                    // 表情显示
+                    ForEach(document.emojis) { emoji in
+                        Text(emoji.text)
+                            .font(.system(size: fontSize(for: emoji)))
+                            .position(position(for: emoji, in: geometry))
+                    }
                 }
             }
             // 使视图可以接受拖拽表情和背景图片
