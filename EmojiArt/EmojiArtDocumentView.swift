@@ -29,8 +29,9 @@ struct EmojiArtDocumentView: View {
                 // 使用了overlay,所以如果背景图片为空,则会显示白色
                 Color.white.overlay(
                     OptionalImage(uiImage: document.backgroundImage)
+                    .scaleEffect(zoomScale) // 缩放
                         .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                )
+                ).gesture(doubleTapToZoom(in: geometry.size)) // 双击缩放背景图片到合适大小
                 // 显示背景图片加载状态
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView().scaleEffect(2) // 加载图标
@@ -39,10 +40,12 @@ struct EmojiArtDocumentView: View {
                     ForEach(document.emojis) { emoji in
                         Text(emoji.text)
                             .font(.system(size: fontSize(for: emoji)))
+                            .scaleEffect(zoomScale) // 缩放
                             .position(position(for: emoji, in: geometry))
                     }
                 }
             }
+            .clipped() // 裁剪超出视图的部分(也就是图片不会占据表情选择滚动条了)
             // 使视图可以接受拖拽表情和背景图片
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
@@ -74,7 +77,7 @@ struct EmojiArtDocumentView: View {
                     document.addEmoji(
                         String(emoji),
                         at: convertToEmojiCoordinates(location, in: geometry),
-                        size: defaultEmojiFontSize
+                        size: defaultEmojiFontSize / zoomScale // 适应缩放比例,保持表情大小不变
                     ) // 添加表情
                 }
             }
@@ -96,8 +99,9 @@ struct EmojiArtDocumentView: View {
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center // .center是扩展引入的
         return CGPoint(
-            x: center.x + CGFloat(location.x),
-            y: center.y + CGFloat(location.y)
+            // 需要适应缩放比例,所以要乘以缩放比例
+            x: center.x + CGFloat(location.x) * zoomScale,
+            y: center.y + CGFloat(location.y) * zoomScale
         )
     }
 
@@ -105,11 +109,34 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (x: Int, y: Int) {
         let center = geometry.frame(in: .local).center
         let location = CGPoint(
-            x: location.x - center.x,
-            y: location.y - center.y
+            x: location.x - center.x / zoomScale,
+            y: location.y - center.y / zoomScale
         )
         return (Int(location.x), Int(location.y))
     }
+
+    // 缩放背景图片相关的函数
+    @State private var zoomScale: CGFloat = 1.0 // doc缩放比例
+    // 缩放拖入的背景图片的辅助函数
+    private func zoomToFit(_ image: UIImage?, in size: CGSize) {
+        // 首先判断图片是否存在,然后图片的宽高是否大于0,再判断传入的size是否大于0
+        if let image = image, image.size.width > 0, image.size.height > 0, size.width > 0, size.height > 0 {
+            // 计算缩放比例
+            let hZoom = size.width / image.size.width // 水平缩放比例
+            let vZoom = size.height / image.size.height // 垂直缩放比例
+            zoomScale = min(hZoom, vZoom) // 选择宽高中较小的作为缩放比例  
+        } 
+    }
+    // 返回一个双击缩放背景图片的手势
+    private func doubleTapToZoom(in size: CGSize) -> some Gesture {
+        TapGesture(count: 2) // 双击
+            .onEnded { //也就是第二次点击的时候
+                withAnimation {
+                    zoomToFit(document.backgroundImage, in: size) // 缩放背景图片
+                }
+            }
+    }
+
 
     // 选择表情的滚动条
     var palette: some View {
