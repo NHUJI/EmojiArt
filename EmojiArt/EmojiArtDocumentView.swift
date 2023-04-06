@@ -29,7 +29,7 @@ struct EmojiArtDocumentView: View {
                 // 使用了overlay,所以如果背景图片为空,则会显示白色
                 Color.white.overlay(
                     OptionalImage(uiImage: document.backgroundImage)
-                    .scaleEffect(zoomScale) // 缩放
+                        .scaleEffect(zoomScale) // 缩放
                         .position(convertFromEmojiCoordinates((0, 0), in: geometry))
                 ).gesture(doubleTapToZoom(in: geometry.size)) // 双击缩放背景图片到合适大小
                 // 显示背景图片加载状态
@@ -50,6 +50,7 @@ struct EmojiArtDocumentView: View {
             .onDrop(of: [.plainText, .url, .image], isTargeted: nil) { providers, location in
                 drop(providers: providers, at: location, in: geometry)
             }
+            .gesture(panGesture().simultaneously(with: zoomGesture())) // 不要在一个view上使用多个gesture,所以使用simultaneously同时检测移动和缩放手势
         }
     }
 
@@ -100,8 +101,8 @@ struct EmojiArtDocumentView: View {
         let center = geometry.frame(in: .local).center // .center是扩展引入的
         return CGPoint(
             // 需要适应缩放比例,所以要乘以缩放比例
-            x: center.x + CGFloat(location.x) * zoomScale,
-            y: center.y + CGFloat(location.y) * zoomScale
+            x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
+            y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
     }
 
@@ -109,14 +110,21 @@ struct EmojiArtDocumentView: View {
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (x: Int, y: Int) {
         let center = geometry.frame(in: .local).center
         let location = CGPoint(
-            x: location.x - center.x / zoomScale,
-            y: location.y - center.y / zoomScale
+            x: (location.x - panOffset.width - center.x) / zoomScale,
+            y: (location.y - panOffset.height - center.y) / zoomScale
         )
         return (Int(location.x), Int(location.y))
     }
 
     // 缩放背景图片相关的函数
-    @State private var zoomScale: CGFloat = 1.0 // doc缩放比例
+    @State private var steadyStateZoomScale: CGFloat = 1.0 // doc缩放比例
+    @GestureState private var gestureZoomScale: CGFloat = 1.0 // 只在捏合时改变的缩放比例
+
+    // 计算缩放比例
+    private var zoomScale: CGFloat {
+        steadyStateZoomScale * gestureZoomScale
+    }
+
     // 缩放拖入的背景图片的辅助函数
     private func zoomToFit(_ image: UIImage?, in size: CGSize) {
         // 首先判断图片是否存在,然后图片的宽高是否大于0,再判断传入的size是否大于0
@@ -124,18 +132,50 @@ struct EmojiArtDocumentView: View {
             // 计算缩放比例
             let hZoom = size.width / image.size.width // 水平缩放比例
             let vZoom = size.height / image.size.height // 垂直缩放比例
-            zoomScale = min(hZoom, vZoom) // 选择宽高中较小的作为缩放比例  
-        } 
+            steadyStatePanOffset = .zero // 重置拖拽偏移量
+            steadyStateZoomScale = min(hZoom, vZoom) // 选择宽高中较小的作为缩放比例
+        }
     }
+
     // 返回一个双击缩放背景图片的手势
     private func doubleTapToZoom(in size: CGSize) -> some Gesture {
         TapGesture(count: 2) // 双击
-            .onEnded { //也就是第二次点击的时候
+            .onEnded { // 也就是第二次点击的时候
                 withAnimation {
                     zoomToFit(document.backgroundImage, in: size) // 缩放背景图片
                 }
             }
     }
+
+    // 返回一个捏合缩放的手势
+    private func zoomGesture() -> some Gesture {
+        MagnificationGesture() // 捏合手势
+            .updating($gestureZoomScale) { latestGestureScale, gestureZoomScale, _ in
+                gestureZoomScale = latestGestureScale // updating的作用是持续用最新的捏合比例更新gestureZoomScale
+            }.onEnded { gestureScaleEnd in
+                steadyStateZoomScale *= gestureScaleEnd // 更新缩放比例
+            }
+    }
+
+    // 移动背景图片相关的函数
+    @State private var steadyStatePanOffset: CGSize = .zero // doc移动的偏移量
+    @GestureState private var gesturePanOffset: CGSize = .zero // 只在拖动时改变的偏移量
+
+    // 计算缩放比例
+    private var panOffset: CGSize {
+        (steadyStatePanOffset + gesturePanOffset) * zoomScale // 扩展里增加了让size相加的功能
+    }
+
+    // 返回一个拖动背景图片的手势
+    private func panGesture() -> some Gesture {
+        DragGesture() // 拖动手势
+            .updating($gesturePanOffset) { latestDragGestureValue, gesturePanOffset, _ in 
+                gesturePanOffset = latestDragGestureValue.translation / zoomScale // 不使用translation,所以用_替代
+            }.onEnded { finalDragGestureValue in
+                steadyStatePanOffset = steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale) // 更新偏移量
+            }
+    }
+
 
 
     // 选择表情的滚动条
