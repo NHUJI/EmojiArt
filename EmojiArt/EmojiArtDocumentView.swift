@@ -30,8 +30,12 @@ struct EmojiArtDocumentView: View {
                 Color.white.overlay(
                     OptionalImage(uiImage: document.backgroundImage)
                         .scaleEffect(zoomScale) // 缩放
-                        .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                ).gesture(doubleTapToZoom(in: geometry.size)) // 双击缩放背景图片到合适大小
+                        .position(convertFromEmojiCoordinates((0, 0), in: geometry)) // 设置背景图片的位置
+                ).gesture(
+                    doubleTapToZoom(in: geometry.size)
+                        .exclusively(before: tapToDeselectAllEmojis())
+                ) // 双击缩放背景图片到合适大小,单击取消所有表情选择
+
                 // 显示背景图片加载状态
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView().scaleEffect(2) // 加载图标
@@ -42,6 +46,19 @@ struct EmojiArtDocumentView: View {
                             .font(.system(size: fontSize(for: emoji)))
                             .scaleEffect(zoomScale) // 缩放
                             .position(position(for: emoji, in: geometry))
+                            .gesture(TapGesture(count: 1) // 单击时选择表情
+                                .onEnded {
+                                    // 处理单击操作
+                                    selectEmoji(emoji)
+                                })
+                            .overlay( // 选中表情时显示蓝色边框
+                                isSelected(emoji) ?
+                                    RoundedRectangle(cornerRadius: 5)
+                                    .stroke(Color.blue, lineWidth: 2)
+                                    .frame(width: fontSize(for: emoji) * zoomScale + 10, height: fontSize(for: emoji) * zoomScale + 10)
+                                    .position(position(for: emoji, in: geometry)) :
+                                    nil
+                            )
                     }
                 }
             }
@@ -52,6 +69,33 @@ struct EmojiArtDocumentView: View {
             }
             .gesture(panGesture().simultaneously(with: zoomGesture())) // 不要在一个view上使用多个gesture,所以使用simultaneously同时检测移动和缩放手势
         }
+    }
+
+    // 表情选择相关函数
+    @State private var selectedEmojis = Set<EmojiArtModel.Emoji>() // 保存被选择的表情
+    @State private var emojiOffsets = [EmojiArtModel.Emoji: CGSize]() // 保存表情的偏移量
+    // 表情被选择时加入set数据
+    private func selectEmoji(_ emoji: EmojiArtModel.Emoji) {
+        // 如果表情已经被选择,则取消选择
+        if selectedEmojis.contains(emoji) {
+            selectedEmojis.remove(emoji)
+        } else {
+            // 如果表情没有被选择,则加入选择
+            selectedEmojis.insert(emoji)
+        }
+    }
+
+    // 判断表情是否被选择
+    private func isSelected(_ emoji: EmojiArtModel.Emoji) -> Bool {
+        selectedEmojis.contains(emoji)
+    }
+
+    // 点击背景取消所有表情选择
+    private func tapToDeselectAllEmojis() -> some Gesture {
+        TapGesture(count: 1)
+            .onEnded {
+                selectedEmojis.removeAll()
+            }
     }
 
     // 拖拽表情到视图的功能
@@ -92,7 +136,7 @@ struct EmojiArtDocumentView: View {
     }
 
     // 根据emoji的坐标来设置表情的位置(每个表情的位置可能不一样)
-    private func position(for emoji: EmojiArtModel.Emoji, in geometry: GeometryProxy) -> CGPoint {
+    private func position(for emoji: EmojiArtModel.Emoji, in geometry: GeometryProxy) -> CGPoint {     
         convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
     }
 
@@ -100,13 +144,13 @@ struct EmojiArtDocumentView: View {
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center // .center是扩展引入的
         return CGPoint(
-            // 需要适应缩放比例,所以要乘以缩放比例
+        // 需要适应缩放比例,所以要乘以缩放比例
             x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
             y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
     }
 
-    // 将视图的坐标转换为表情的坐标的辅助函数
+    // 将视图的坐标转换为表情的坐标的辅助函数(主要是添加背景图片时使用)
     private func convertToEmojiCoordinates(_ location: CGPoint, in geometry: GeometryProxy) -> (x: Int, y: Int) {
         let center = geometry.frame(in: .local).center
         let location = CGPoint(
@@ -157,7 +201,7 @@ struct EmojiArtDocumentView: View {
             }
     }
 
-    // 移动背景图片相关的函数
+    // 移动背景图片相关的变量
     @State private var steadyStatePanOffset: CGSize = .zero // doc移动的偏移量
     @GestureState private var gesturePanOffset: CGSize = .zero // 只在拖动时改变的偏移量
 
@@ -166,12 +210,15 @@ struct EmojiArtDocumentView: View {
         (steadyStatePanOffset + gesturePanOffset) * zoomScale // 扩展里增加了让size相加的功能
     }
 
-    // 返回一个拖动背景图片的手势
+    // 返回一个拖动背景图片的手势(如果有选择表情则不允许拖动背景图片)
     private func panGesture() -> some Gesture {
-        DragGesture() // 拖动手势
-            .updating($gesturePanOffset) { latestDragGestureValue, gesturePanOffset, _ in 
-                gesturePanOffset = latestDragGestureValue.translation / zoomScale // 不使用translation,所以用_替代
-            }.onEnded { finalDragGestureValue in
+        DragGesture()
+            .updating($gesturePanOffset) { latestDragGestureValue, gesturePanOffset, _ in // 不使用translation,所以用_替代
+                guard selectedEmojis.isEmpty else { return }
+                gesturePanOffset = latestDragGestureValue.translation / zoomScale
+            }
+            .onEnded { finalDragGestureValue in
+                guard selectedEmojis.isEmpty else { return }
                 steadyStatePanOffset = steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale) // 更新偏移量
             }
     }
