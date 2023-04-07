@@ -50,7 +50,7 @@ struct EmojiArtDocumentView: View {
                                 .onEnded {
                                     // 处理单击操作
                                     selectEmoji(emoji)
-                                })
+                                }.simultaneously(with: DragSelectedEmojisGesture(emoji: emoji)))
                             .overlay( // 选中表情时显示蓝色边框
                                 isSelected(emoji) ?
                                     RoundedRectangle(cornerRadius: 5)
@@ -98,6 +98,25 @@ struct EmojiArtDocumentView: View {
             }
     }
 
+    // 存储被选择的表情偏移量(按照emoji: CGSize的格式存储)
+    @State private var selectedEmojisOffset = [EmojiArtModel.Emoji: CGSize]()
+
+    // 拖拽被选择的表情
+    private func DragSelectedEmojisGesture(emoji: EmojiArtModel.Emoji) -> some Gesture {
+        DragGesture()
+            .onEnded { value in
+                withAnimation {
+                    // 如果表情被选择,则移动表情
+                    if isSelected(emoji) {
+                        selectedEmojis.forEach { selectedEmoji in
+                            // 计算表情的偏移量,并存储(如有旧值则在基础上更改)
+                            selectedEmojisOffset[selectedEmoji] = (selectedEmojisOffset[selectedEmoji] ?? .zero) + value.translation
+                        }
+                    }
+                }
+            }
+    }
+
     // 拖拽表情到视图的功能
     private func drop(providers: [NSItemProvider], at location: CGPoint, in geometry: GeometryProxy) -> Bool {
         var found = providers.loadFirstObject(ofType: URL.self) { url in
@@ -136,15 +155,19 @@ struct EmojiArtDocumentView: View {
     }
 
     // 根据emoji的坐标来设置表情的位置(每个表情的位置可能不一样)
-    private func position(for emoji: EmojiArtModel.Emoji, in geometry: GeometryProxy) -> CGPoint {     
-        convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
+    private func position(for emoji: EmojiArtModel.Emoji, in geometry: GeometryProxy) -> CGPoint {
+        var location = convertFromEmojiCoordinates((emoji.x, emoji.y), in: geometry)
+        if let offset = selectedEmojisOffset[emoji] {
+            location = location + (offset * zoomScale)
+        }
+        return location
     }
 
     // 将表情的坐标转换为视图的坐标的辅助函数
     private func convertFromEmojiCoordinates(_ location: (x: Int, y: Int), in geometry: GeometryProxy) -> CGPoint {
         let center = geometry.frame(in: .local).center // .center是扩展引入的
         return CGPoint(
-        // 需要适应缩放比例,所以要乘以缩放比例
+            // 需要适应缩放比例,所以要乘以缩放比例
             x: center.x + CGFloat(location.x) * zoomScale + panOffset.width,
             y: center.y + CGFloat(location.y) * zoomScale + panOffset.height
         )
@@ -222,8 +245,6 @@ struct EmojiArtDocumentView: View {
                 steadyStatePanOffset = steadyStatePanOffset + (finalDragGestureValue.translation / zoomScale) // 更新偏移量
             }
     }
-
-
 
     // 选择表情的滚动条
     var palette: some View {
