@@ -33,7 +33,7 @@ struct EmojiArtModel {
 
     // 由于修改了本身的属性，所以需要加上mutating, (x: Int, y: Int)是一个元组(tuple)，用于表示一个坐标
     mutating func addEmoji(_ text: String, at location: (x: Int, y: Int), size: Int) {
-        uniqueEmojiId += 1
+        uniqueEmojiId += 1 // 为每个添加的emoji分配一个唯一的id
         emojis.append(Emoji(text: text, x: location.x, y: location.y, size: size, id: uniqueEmojiId))
     }
 }

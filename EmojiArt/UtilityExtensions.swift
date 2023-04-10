@@ -71,6 +71,18 @@ extension Set where Element: Identifiable {
     }
 }
 
+// 增加的用于支持Int输入的Set
+extension Set where Element == Int {
+    mutating func toggleMembership(of element: Element) {
+        if self.contains(element) {
+            remove(element)
+        } else {
+            insert(element)
+        }
+    }
+}
+
+
 // some extensions to String and Character
 // to help us with managing our Strings of emojis
 // we want them to be "emoji only"
