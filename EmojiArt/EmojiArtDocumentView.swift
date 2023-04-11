@@ -190,7 +190,7 @@ struct EmojiArtDocumentView: View {
             )
     }
 
-    // 删除表情
+    // 删除表情功能
     private func deleteEmoji(for emoji: EmojiArtModel.Emoji) {
         document.deleteEmoji(emoji)
     }
