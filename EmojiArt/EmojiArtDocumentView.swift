@@ -174,9 +174,28 @@ struct EmojiArtDocumentView: View {
             .frame(width: fontSize(for: emoji) * emojiSize(for: emoji) + 10, height: fontSize(for: emoji) * emojiSize(for: emoji) + 10) // 计算边框大小
             .position(position(for: emoji, in: geometry))
             .opacity(isSelected(emoji) ? 1 : 0) // 如果表情被选中,则显示边框
+            // 显示在方框右上角的删除图标
+            .overlay(
+                Image(systemName: "xmark.circle.fill")
+                    .resizable()
+                    .frame(width: fontSize(for: emoji) * emojiSize(for: emoji) / 2, height: fontSize(for: emoji) * emojiSize(for: emoji) / 2)
+                    .position(x: position(for: emoji, in: geometry).x + fontSize(for: emoji) * emojiSize(for: emoji) / 2 + 5, y: position(for: emoji, in: geometry).y - fontSize(for: emoji) * emojiSize(for: emoji) / 2 - 5)
+                    // 使用SF分层颜色
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(Color.white, Color.red)
+                    .opacity(isSelected(emoji) ? 1 : 0) // 如果表情被选中,则显示删除图标
+                    .onTapGesture {
+                        deleteEmoji(for: emoji)
+                    }
+            )
     }
 
-    // 删除全部选中的表情
+    // 删除表情
+    private func deleteEmoji(for emoji: EmojiArtModel.Emoji) {
+        document.deleteEmoji(emoji)
+    }
+
+    // 取消选择全部选中的表情
     private func deleteSelectedEmojis() -> some Gesture {
         TapGesture(count: 1)
             .onEnded {

@@ -109,9 +109,24 @@ class EmojiArtDocument: ObservableObject {
         }
     }
 
+//    func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat) {
+//        if let index = emojiArt.emojis.index(matching: emoji) {
+//            emojiArt.emojis[index].size = Int((CGFloat(emojiArt.emojis[index].size) * scale).rounded(.toNearestOrAwayFromZero))
+//        }
+//    }
+    // 我自己的修改,加入了限制表情最大最小大小的功能
+    private let minEmojiSize: CGFloat = 10
+    private let maxEmojiSize: CGFloat = 600
+
     func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat) {
         if let index = emojiArt.emojis.index(matching: emoji) {
-            emojiArt.emojis[index].size = Int((CGFloat(emojiArt.emojis[index].size) * scale).rounded(.toNearestOrAwayFromZero))
+            var newSize = CGFloat(emojiArt.emojis[index].size) * scale
+            newSize = min(max(newSize, minEmojiSize), maxEmojiSize) // 限制大小在[minEmojiSize, maxEmojiSize]范围内
+            emojiArt.emojis[index].size = Int(newSize.rounded(.toNearestOrAwayFromZero))
         }
+    }
+
+    func deleteEmoji(_ emoji: EmojiArtModel.Emoji) {
+        emojiArt.deleteEmoji(emoji)
     }
 }

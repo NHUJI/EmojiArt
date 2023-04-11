@@ -36,4 +36,9 @@ struct EmojiArtModel {
         uniqueEmojiId += 1 // 为每个添加的emoji分配一个唯一的id
         emojis.append(Emoji(text: text, x: location.x, y: location.y, size: size, id: uniqueEmojiId))
     }
+
+    // 删除表情
+    mutating func deleteEmoji(_ emoji: Emoji) {
+        emojis.removeAll(where: { $0.id == emoji.id }) // 使用id判断避免删除错误
+    }
 }
