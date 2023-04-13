@@ -12,11 +12,54 @@ class EmojiArtDocument: ObservableObject {
     // @Published表示当emojiArt发生变化时，会自动通知所有的观察者
     @Published private(set) var emojiArt: EmojiArtModel {
         didSet {
+            // 每次EmojiArt发生变化时，都会自动保存到本地
+            autosave()
             // 当emojiArt发生变化时,会自动调用这里的代码
             if emojiArt.background != oldValue.background {
                 // 如果背景图片发生变化,则重新加载图片
                 fetchBackgroundImageDataIfNecessary()
             }
+        }
+    }
+
+    // Autosave用于存储自动保存的文件名和url
+    private enum Autosave {
+        // 定义自动保存文件使用的文件名
+        static let filename = "Autosaved.emojiart"
+        // 计算属性，用于获取自动保存文件的 URL
+        static var url: URL? {
+            // 获取文档目录的URL
+            let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
+            // 在文档目录的 URL 后面添加文件名，得到自动保存的文件的URL(也就是之前只是获得文件夹现在加上具体的名称)
+            return documentDirectory?.appendingPathComponent(filename)
+        }
+    }
+
+    // 自动保存
+    private func autosave() {
+        // 如果url不为空,则保存到这个url中
+        if let url = Autosave.url {
+            save(to: url)
+        }
+    }
+
+    // 这里的URL和拖入图片的不同,这是文件URL 用于放入本地存储中
+    // 这里不打算再抛出错误了,而是使用do-catch来处理错误
+    private func save(to url: URL) {
+        //  由于可能处理多种错误,所以存储结构名和方法名
+        let thisFunction = "\(String(describing: self)).\(#function))"
+        do {
+            // 将emojiArt模型转换为json格式的数据
+            let data: Data = try emojiArt.json() // 让模型提供一个方法把自己转换为json格式的数据
+            print("\(thisFunction) json=\(String(data: data, encoding: .utf8) ?? "nil")") // 打印json格式的数据
+            // 将数据保存到url中
+            try data.write(to: url)
+            // 在这两个之后表示没有错误
+            print("\(thisFunction) success!")
+        } catch let encodingError where encodingError is EncodingError { // 只捕获 EncodingError 类型的错误
+            print("\(thisFunction) couldn't encode EmojiArt as JsoN because \(encodingError.localizedDescription)")
+        } catch {
+            print("\(thisFunction) error= \(error)")
         }
     }
 

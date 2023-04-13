@@ -6,12 +6,13 @@
 //
 
 import Foundation
-
-struct EmojiArtModel {
+// 添加Codable让模型可以被转换为json格式的数据(但要求所有的变量都是Codable的)
+struct EmojiArtModel: Codable {
+    // 可以通过注销掉一些变量来观察它是否是导致不能Codable的原因
     var background = Background.blank
-    var emojis = [Emoji]()
+    var emojis = [Emoji]() // 数组是Codable的,但是数组中的元素不一定收益要给Emoji添加Codable
 
-    struct Emoji: Identifiable, Hashable {
+    struct Emoji: Identifiable, Hashable, Codable {
         let text: String
         var x: Int
         var y: Int
@@ -26,6 +27,11 @@ struct EmojiArtModel {
             self.size = size
             self.id = id
         }
+    }
+
+    // 将document转换为json格式,方便保存
+    func json() throws -> Data {
+        return try JSONEncoder().encode(self)
     }
 
     init() {} // 设置EmojiArtModel的默认构造函数(什么都不干),避免被用来设置背景和emoji
