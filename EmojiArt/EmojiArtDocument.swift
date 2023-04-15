@@ -12,13 +12,25 @@ class EmojiArtDocument: ObservableObject {
     // @Published表示当emojiArt发生变化时，会自动通知所有的观察者
     @Published private(set) var emojiArt: EmojiArtModel {
         didSet {
-            // 每次EmojiArt发生变化时，都会自动保存到本地
-            autosave()
+            // 当emojiArt发生变化时,会调用自动保存功能(它会合并更改并在停止更改后一段时间后自动保存)
+            scheduleAutosave()
             // 当emojiArt发生变化时,会自动调用这里的代码
             if emojiArt.background != oldValue.background {
                 // 如果背景图片发生变化,则重新加载图片
                 fetchBackgroundImageDataIfNecessary()
             }
+        }
+    }
+
+    // 用于自动保存的timer
+    private var autosaveTimer: Timer?
+
+    private func scheduleAutosave() {
+        // 如果timer已经存在,则取消它(避免每次保存都开始计时,失去合并的意义)
+        autosaveTimer?.invalidate()
+        // 我们不需要timer的引用,所以用_来代替,另外不需要使用weak self
+        autosaveTimer = Timer.scheduledTimer(withTimeInterval: Autosave.coalescingInterval, repeats: false) { _ in
+            self.autosave()
         }
     }
 
@@ -33,6 +45,7 @@ class EmojiArtDocument: ObservableObject {
             // 在文档目录的 URL 后面添加文件名，得到自动保存的文件的URL(也就是之前只是获得文件夹现在加上具体的名称)
             return documentDirectory?.appendingPathComponent(filename)
         }
+        static let coalescingInterval = 5.0 // 自动保存的时间间隔
     }
 
     // 自动保存
@@ -64,11 +77,20 @@ class EmojiArtDocument: ObservableObject {
     }
 
     init() {
-        emojiArt = EmojiArtModel()
+        // 首先尝试从本地加载自动保存的数据,如果成功,则使用这个数据,否则使用默认的数据(空白页面)
+        if let url = Autosave.url, let autusavedEmojiArt = try? EmojiArtModel(url: url) {
+            emojiArt = autusavedEmojiArt
+            // 如果加载成功,则尝试加载背景图片
+            fetchBackgroundImageDataIfNecessary()
+        } else {
+            emojiArt = EmojiArtModel()
         // 测试用,添加几个不同的emoji
         emojiArt.addEmoji("👻", at: (-200, 100), size: 80)
         emojiArt.addEmoji("🎃", at: (100, 0), size: 40)
         emojiArt.addEmoji("🤡", at: (0, -100), size: 30)
+        }
+
+        
 
         // 添加30个类似的测试用例
         //        for i in 0..<30{
@@ -138,7 +160,7 @@ class EmojiArtDocument: ObservableObject {
 
     func setBackground(_ background: EmojiArtModel.Background) {
         emojiArt.background = background
-        print("background set to \(background)")
+        // print("background set to \(background)")
     }
 
     func addEmoji(_ emoji: String, at location: (x: Int, y: Int), size: CGFloat) {

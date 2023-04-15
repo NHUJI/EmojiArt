@@ -34,6 +34,16 @@ struct EmojiArtModel: Codable {
         return try JSONEncoder().encode(self)
     }
 
+    // 将json格式的数据转换为document
+    init(json: Data) throws {
+        self = try JSONDecoder().decode(EmojiArtModel.self, from: json)
+    }
+
+    init(url: URL) throws {
+        let data = try Data(contentsOf: url) // 从url中读取数据
+        self = try EmojiArtModel(json: data) // 调用上面的init(json: Data)方法,用数据来初始化model
+    }
+
     init() {} // 设置EmojiArtModel的默认构造函数(什么都不干),避免被用来设置背景和emoji
     private var uniqueEmojiId = 0 // 用于给每个emoji分配唯一的id
 
