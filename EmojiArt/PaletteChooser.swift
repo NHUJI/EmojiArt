@@ -32,7 +32,46 @@ struct PaletteChooser: View {
             Image(systemName: "paintpalette")
         }
         .font(emojiFont) // 设置成和表情一样大
-//        .contextMenu { contextMenu } // 设置长按弹出的菜单
+        .contextMenu { contextMenu } // 设置长按弹出的菜单
+    }
+
+    @ViewBuilder // ViewBuilder可以让我们在一个函数中返回多个view 
+    var contextMenu: some View {
+        // AnimatedActionButton是自定义的扩展,方便做菜单按钮
+        AnimatedActionButton(title: "Edit", systemImage: "pencil") {
+            //    editing = true // 进入编辑模式
+            // paletteToEdit = store.palette(at: chosenPaletteIndex)
+        }
+        AnimatedActionButton(title: "New", systemImage: "plus") {
+            // 调用model的方法,便捷地添加一个新的palette
+            store.insertPalette(named: "New", emojis: "", at: chosenPaletteIndex)
+            //    editing = true
+            // paletteToEdit = store.palette(at: chosenPaletteIndex)
+        }
+        AnimatedActionButton(title: "Delete", systemImage: "minus.circle") {
+            // removePalette会返回新的index,所以可以在这里直接改变chosenPaletteIndex
+            chosenPaletteIndex = store.removePalette(at: chosenPaletteIndex)
+        }
+        AnimatedActionButton(title: "Manager", systemImage: "slider.vertical.3") {
+//            managing = true
+        }
+        gotoMenu // 跳转到二级菜单选择表情组
+    }
+
+    // 点击选择需要跳转的表情组,不需要@ViewBuilder,因为只有一个Menu view
+    var gotoMenu: some View {
+        Menu {
+            ForEach(store.palettes) { palette in
+                AnimatedActionButton(title: palette.name) {
+                    // index(matching:)是自定义的扩展,用于获取palette在palettes中的index
+                    if let index = store.palettes.index(matching: palette) {
+                        chosenPaletteIndex = index
+                    }
+                }
+            }
+        } label: {
+            Label("Go To", systemImage: "text.insert")
+        }
     }
 
     // 独立出来的palette的名字和表情内容
