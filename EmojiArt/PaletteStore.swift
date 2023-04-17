@@ -8,10 +8,11 @@
 import SwiftUI
 
 // Identifiable非常重要,因为UI经常要用它forEach等
-struct Palette: Identifiable, Codable {
-    let name: String // emoji种类的名称
-    let emojis: String // 可以选择的表情列表(会被分解成数组)
-    let id: Int // 用于标识的id
+struct Palette: Identifiable, Codable, Hashable {
+    // 为了后面可以更改调色盘,所以设置为var而不是let
+    var name: String // emoji种类的名称
+    var emojis: String // 可以选择的表情列表(会被分解成数组)
+    var id: Int // 用于标识的id
 
     // 表示只能通过这个VM来添加新的palette
     fileprivate init(name: String, emojis: String, id: Int) {

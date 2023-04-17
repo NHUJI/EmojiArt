@@ -15,6 +15,7 @@ struct PaletteChooser: View {
 
     @State private var chosenPaletteIndex = 0 // 当前选择的palette的index
 
+    // 整个表情选择栏(主视图)
     var body: some View {
         HStack {
             paletteControlButton
@@ -35,22 +36,19 @@ struct PaletteChooser: View {
         .contextMenu { contextMenu } // 设置长按弹出的菜单
     }
 
-    @ViewBuilder // ViewBuilder可以让我们在一个函数中返回多个view 
+    @ViewBuilder // ViewBuilder可以让我们在一个函数中返回多个view
     var contextMenu: some View {
-        // AnimatedActionButton是自定义的扩展,方便做菜单按钮
-        AnimatedActionButton(title: "Edit", systemImage: "pencil") {
-            //    editing = true // 进入编辑模式
-            // paletteToEdit = store.palette(at: chosenPaletteIndex)
+        AnimatedActionButton(title: "Edit", systemImage: "pencil") { // AnimatedActionButton是自定义的扩展,方便做菜单按钮
+            // editing = true // 进入编辑模式
+            paletteToEdit = store.palette(at: chosenPaletteIndex)
         }
         AnimatedActionButton(title: "New", systemImage: "plus") {
-            // 调用model的方法,便捷地添加一个新的palette
-            store.insertPalette(named: "New", emojis: "", at: chosenPaletteIndex)
-            //    editing = true
-            // paletteToEdit = store.palette(at: chosenPaletteIndex)
+            store.insertPalette(named: "New", emojis: "", at: chosenPaletteIndex) // 调用model的方法,便捷地添加一个新的palette
+            // editing = true
+            paletteToEdit = store.palette(at: chosenPaletteIndex)
         }
         AnimatedActionButton(title: "Delete", systemImage: "minus.circle") {
-            // removePalette会返回新的index,所以可以在这里直接改变chosenPaletteIndex
-            chosenPaletteIndex = store.removePalette(at: chosenPaletteIndex)
+            chosenPaletteIndex = store.removePalette(at: chosenPaletteIndex) // removePalette会返回新的index,所以可以在这里直接改变chosenPaletteIndex
         }
         AnimatedActionButton(title: "Manager", systemImage: "slider.vertical.3") {
 //            managing = true
@@ -63,8 +61,7 @@ struct PaletteChooser: View {
         Menu {
             ForEach(store.palettes) { palette in
                 AnimatedActionButton(title: palette.name) {
-                    // index(matching:)是自定义的扩展,用于获取palette在palettes中的index
-                    if let index = store.palettes.index(matching: palette) {
+                    if let index = store.palettes.index(matching: palette) { // index(matching:)是自定义的扩展,用于获取palette在palettes中的index
                         chosenPaletteIndex = index
                     }
                 }
@@ -83,7 +80,21 @@ struct PaletteChooser: View {
         }
         .id(palette.id) // 相当于让这个view identifiable,这样就可以使用transition了(因为之前只是在更新里面的值并没有改变view)
         .transition(rollTransition) // 设置切换动画
+        // .popover(isPresented: $editing) { // 弹出表情编辑器(如果改用sheet的话不会有小尖头)
+        //     PaletteEditor(palette: $store.palettes[chosenPaletteIndex]) // 通过binding的方式传递数据(而不是传递副本)
+                
+        // }
+        .popover(item: $paletteToEdit) { palette in // palette必须是可识别的(identifiable)
+            PaletteEditor(palette: $store.palettes[palette])  // 当paletteToEdit是nil时,这里不会被执 行
+        }// popover倾向于让自己越小越好,所以需要设置frame
+        // editing每次改变时都打印出来 (测试发现似乎popover会自己在点击其他区域时修改editing的值为false)
+        // .onChange(of: editing) { editing in
+        //     print("PaletteChooser: editing = \(editing)")
+        // }
     }
+
+    // @State private var editing = false // 控制表情编辑器的显示
+    @State private var paletteToEdit: Palette? // 控制表情编辑器的显示的更好方式
 
     // palette切换动画
     var rollTransition: AnyTransition {
