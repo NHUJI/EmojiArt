@@ -51,7 +51,7 @@ struct PaletteChooser: View {
             chosenPaletteIndex = store.removePalette(at: chosenPaletteIndex) // removePalette会返回新的index,所以可以在这里直接改变chosenPaletteIndex
         }
         AnimatedActionButton(title: "Manager", systemImage: "slider.vertical.3") {
-//            managing = true
+            managing = true
         }
         gotoMenu // 跳转到二级菜单选择表情组
     }
@@ -82,18 +82,22 @@ struct PaletteChooser: View {
         .transition(rollTransition) // 设置切换动画
         // .popover(isPresented: $editing) { // 弹出表情编辑器(如果改用sheet的话不会有小尖头)
         //     PaletteEditor(palette: $store.palettes[chosenPaletteIndex]) // 通过binding的方式传递数据(而不是传递副本)
-                
+
         // }
         .popover(item: $paletteToEdit) { palette in // palette必须是可识别的(identifiable)
-            PaletteEditor(palette: $store.palettes[palette])  // 当paletteToEdit是nil时,这里不会被执 行
-        }// popover倾向于让自己越小越好,所以需要设置frame
+            PaletteEditor(palette: $store.palettes[palette]) // 当paletteToEdit是nil时,这里不会被执 行
+        } // popover倾向于让自己越小越好,所以需要设置frame
         // editing每次改变时都打印出来 (测试发现似乎popover会自己在点击其他区域时修改editing的值为false)
         // .onChange(of: editing) { editing in
         //     print("PaletteChooser: editing = \(editing)")
         // }
+        .sheet(isPresented: $managing) { // 放到按钮上也行,只是个弹出窗口
+            PaletteManager().environmentObject(store)
+        }
     }
 
     // @State private var editing = false // 控制表情编辑器的显示
+    @State private var managing = false // 控制表情管理器的显示
     @State private var paletteToEdit: Palette? // 控制表情编辑器的显示的更好方式
 
     // palette切换动画

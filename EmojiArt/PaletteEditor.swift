@@ -19,6 +19,7 @@ struct PaletteEditor: View {
             removeEmojiSection
         }
         .frame(minWidth: 300, minHeight: 350) // 还有很多其他参数,我们只设置了最小宽高
+        .navigationTitle("Edit \(palette.name)") // 设置导航栏标题(只在Navigation导航过来时有效)
     }
 
     // 独立出来的Section,让Form更简洁
