@@ -107,10 +107,10 @@ class EmojiArtDocument: ObservableObject {
     @Published var backgroundImage: UIImage?
     @Published var backgroundImageFetchStatus = BackgroundImageFetchStatus.idle // 设置一个状态,用来表示当前的背景图片的状态(通过检测enum的值来判断)
 
-    enum BackgroundImageFetchStatus: Equatable {
+    enum BackgroundImageFetchStatus: Equatable { // 有关联值的枚举,所以需要遵守Equatable协议
         case idle // 空闲状态
         case fetching // 正在获取图片
-        case failed(URL) // 获取图片失败
+        case failed(URL) // 获取图片失败(用于弹出警告)
     }
 
     private func fetchBackgroundImageDataIfNecessary() {
@@ -140,8 +140,7 @@ class EmojiArtDocument: ObservableObject {
                             // self.backgroundImage = UIImage(data: imageData!)
                             self?.backgroundImage = UIImage(data: imageData!) // “?”表示如果self为nil,则不执行后面的代码
                         }
-                        if imageData == nil {
-                            // 如果图片数据为空,则设置状态为获取失败
+                        if self?.backgroundImage == nil {  // 如果图片数据为空,则设置状态为获取失败
                             self?.backgroundImageFetchStatus = .failed(url)
                         }
                     }

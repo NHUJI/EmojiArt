@@ -57,6 +57,32 @@ struct EmojiArtDocumentView: View {
             }
             .gesture(zoomGesture().simultaneously(with: selectedEmojis.isEmpty ? panGesture() : nil)) // 当偏移量为0时,才检测移动手势
             // 不要在一个view上使用多个gesture,所以使用simultaneously同时检测移动和缩放手势
+            .alert(item: $alertToShow) { alertToShow in
+                // 需要反回一个Alert
+                alertToShow.alert()
+            }
+            .onChange(of: document.backgroundImageFetchStatus) { status in
+                // 如果背景图片加载失败,则显示提示
+                // print("backgroundImageFetchStatus changed: \(status)")
+                switch status {
+                    case .failed(let url):
+                        showBackgroundImageFailureAlert(url)
+                    default:
+                        break
+                }
+            }
+        }
+    }
+
+    @State private var alertToShow: IdentifiableAlert? // 自定义的Alert结构
+
+    private func showBackgroundImageFailureAlert(_ url: URL) {
+        alertToShow = IdentifiableAlert(id: "fetch failed: " + url.absoluteString) {
+            Alert(
+                title: Text("Background Image Fetch"),
+                message: Text("Couldn't load image from \(url)"),
+                dismissButton: .default(Text("OK"))
+            )
         }
     }
 
@@ -126,8 +152,6 @@ struct EmojiArtDocumentView: View {
                 for emojiId in selectedEmojis {
                     document.moveEmoji(emojiId, by: finalDragGestureValue.translation / zoomScale)
                 }
-                // 打印偏移量
-                // print("finalDragGestureValue: \(finalDragGestureValue.translation / zoomScale)")
             }
     }
 

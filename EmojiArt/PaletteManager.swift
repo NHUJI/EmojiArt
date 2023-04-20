@@ -31,7 +31,11 @@ struct PaletteManager: View {
                             Text(palette.name)
                             // .font(editMode == .active ? .largeTitle : .caption)
                             Text(palette.emojis)
-                        }
+                        } 
+                        // tapping when NOT in editMode will follow the NavigationLink
+                        // (that's why gesture is set to nil in that case)
+                    
+                        .gesture(editMode == .active ? tap : nil)
                     }
                 }
                 .onDelete { indexSet in // 删除,indexSet也就是循环里对应表情组的索引(虽然叫set但一次只能删除一个,不过以后可能支持多个)
@@ -58,6 +62,10 @@ struct PaletteManager: View {
             }
             .environment(\.editMode, $editMode) // 使用了绑定来修改和显示编辑模式
         }
+    }
+
+    var tap: some Gesture {
+        TapGesture().onEnded { }
     }
 }
 
