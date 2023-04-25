@@ -69,18 +69,11 @@
 		B90176BA29D7F20300F34DFC /* EmojiArt */ = {
 			isa = PBXGroup;
 			children = (
+				B92F6D4229F8139700C59386 /* Utility */,
+				B92F6D4129F8137800C59386 /* Palette */,
+				B92F6D4029F8135B00C59386 /* EmojiGame */,
 				B90176BB29D7F20300F34DFC /* EmojiArtApp.swift */,
-				B9AD7ADE29EE5D1E002E528D /* PaletteManager.swift */,
-				B943B73029ED1C630020F567 /* PaletteEditor.swift */,
-				B90176BD29D7F20300F34DFC /* EmojiArtDocumentView.swift */,
-				B9F579A229EA3DDE00009842 /* PaletteStore.swift */,
-				B9F579A429EC2AA800009842 /* PaletteChooser.swift */,
-				B90176C929D7F35C00F34DFC /* EmojiArtModel.swift */,
-				B9C4EF8229D813600074FF6F /* EmojiArtModel.Background.swift */,
-				B9C4EF8629D82E430074FF6F /* EmojiArtDocument.swift */,
 				B90176BF29D7F20400F34DFC /* Assets.xcassets */,
-				B9C4EF8929D82F660074FF6F /* UtilityExtensions.swift */,
-				B9C4EF8829D82F660074FF6F /* UtilityViews.swift */,
 				B90176C129D7F20400F34DFC /* Preview Content */,
 			);
 			path = EmojiArt;
@@ -92,6 +85,37 @@
 				B90176C229D7F20400F34DFC /* Preview Assets.xcassets */,
 			);
 			path = "Preview Content";
+			sourceTree = "<group>";
+		};
+		B92F6D4029F8135B00C59386 /* EmojiGame */ = {
+			isa = PBXGroup;
+			children = (
+				B90176BD29D7F20300F34DFC /* EmojiArtDocumentView.swift */,
+				B90176C929D7F35C00F34DFC /* EmojiArtModel.swift */,
+				B9C4EF8229D813600074FF6F /* EmojiArtModel.Background.swift */,
+				B9C4EF8629D82E430074FF6F /* EmojiArtDocument.swift */,
+			);
+			path = EmojiGame;
+			sourceTree = "<group>";
+		};
+		B92F6D4129F8137800C59386 /* Palette */ = {
+			isa = PBXGroup;
+			children = (
+				B9AD7ADE29EE5D1E002E528D /* PaletteManager.swift */,
+				B943B73029ED1C630020F567 /* PaletteEditor.swift */,
+				B9F579A229EA3DDE00009842 /* PaletteStore.swift */,
+				B9F579A429EC2AA800009842 /* PaletteChooser.swift */,
+			);
+			path = Palette;
+			sourceTree = "<group>";
+		};
+		B92F6D4229F8139700C59386 /* Utility */ = {
+			isa = PBXGroup;
+			children = (
+				B9C4EF8929D82F660074FF6F /* UtilityExtensions.swift */,
+				B9C4EF8829D82F660074FF6F /* UtilityViews.swift */,
+			);
+			path = Utility;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
