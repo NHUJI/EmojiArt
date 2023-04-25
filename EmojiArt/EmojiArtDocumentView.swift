@@ -71,6 +71,10 @@ struct EmojiArtDocumentView: View {
                         break
                 }
             }
+            .onReceive(document.$backgroundImage) { image in
+                // 如果背景图片加载成功,则缩放到合适大小
+                zoomToFit(image, in: geometry.size)
+            }
         }
     }
 

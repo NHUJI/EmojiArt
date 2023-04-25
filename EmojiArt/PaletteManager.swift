@@ -46,7 +46,7 @@ struct PaletteManager: View {
                 }
             }
             .navigationTitle("Manage Palettes") // 设置标题
-            .navigationBarTitleDisplayMode(.inline) // 设置标题显示方式
+            .navigationBarTitleDisplayMode(.inline) // 设置标题显示方式(还有.large)
             // .environment(\.colorScheme, .dark) // 设置环境变量(只对注入的view有效)
             .toolbar {
                 ToolbarItem { EditButton() } // 用于编辑模式切换按钮(swiftUI自带)

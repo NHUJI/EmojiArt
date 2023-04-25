@@ -10,7 +10,7 @@ import Foundation
 struct EmojiArtModel: Codable {
     // 可以通过注销掉一些变量来观察它是否是导致不能Codable的原因
     var background = Background.blank
-    var emojis = [Emoji]() // 数组是Codable的,但是数组中的元素不一定收益要给Emoji添加Codable
+    var emojis = [Emoji]() // 数组是Codable的,但是数组中的元素不一定所以要给Emoji添加Codable
 
     struct Emoji: Identifiable, Hashable, Codable {
         let text: String
