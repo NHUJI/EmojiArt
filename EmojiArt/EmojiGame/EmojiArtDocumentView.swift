@@ -12,7 +12,7 @@ struct EmojiArtDocumentView: View {
     // 通过@ObservedObject来观察document的变化,document是EmojiArtDocument(MVVM的VM)
     @ObservedObject var document: EmojiArtDocument
 
-    let defaultEmojiFontSize: CGFloat = 40
+    @ScaledMetric var defaultEmojiFontSize: CGFloat = 40
 
     // app的主体视图
     var body: some View {
@@ -73,10 +73,14 @@ struct EmojiArtDocumentView: View {
             }
             .onReceive(document.$backgroundImage) { image in
                 // 如果背景图片加载成功,则缩放到合适大小
-                zoomToFit(image, in: geometry.size)
+                if autozoom {
+                    zoomToFit(image, in: geometry.size)
+                }
             }
         }
     }
+
+    @State private var autozoom = false
 
     @State private var alertToShow: IdentifiableAlert? // 自定义的Alert结构
 
@@ -106,12 +110,13 @@ struct EmojiArtDocumentView: View {
         }
     }
 
-    // MARK: - 表情(放置)
+    // MARK: - 表情和背景图片(放置)
 
-    // 拖拽表情到视图的功能
+    // 拖拽表情, 背景图片到视图的功能
     private func drop(providers: [NSItemProvider], at location: CGPoint, in geometry: GeometryProxy) -> Bool {
         var found = providers.loadFirstObject(ofType: URL.self) { url in
             // 如果是图片url,则添加图片背景
+            autozoom = true // 起动自动缩放
             document.setBackground(EmojiArtModel.Background.url(url.imageURL))
         }
 
@@ -271,7 +276,7 @@ struct EmojiArtDocumentView: View {
     // MARK: - 背景图片和表情调整手势
 
     // 缩放背景图片相关的函数
-    @State private var steadyStateZoomScale: CGFloat = 1.0 // doc缩放比例
+    @SceneStorage("EmojiArtDocument.steadyStateZoomScale") private var steadyStateZoomScale: CGFloat = 1.0 // doc缩放比例
     @GestureState private var gestureZoomScale: CGFloat = 1.0 // 只在捏合时改变的缩放比例
 
     // 计算缩放比例
@@ -322,7 +327,7 @@ struct EmojiArtDocumentView: View {
     }
 
     // 长按移动文档相关的函数
-    @State private var steadyStatePanOffset: CGSize = .zero // doc移动的偏移量
+    @SceneStorage("EmojiArtDocument.steadyStatePanOffset") private var steadyStatePanOffset: CGSize = .zero // doc移动的偏移量
     @GestureState private var gesturePanOffset: CGSize = .zero // 只在拖动时改变的偏移量
 
     // 计算偏移量(用于背景图片和表情在拖动手势下的移动)

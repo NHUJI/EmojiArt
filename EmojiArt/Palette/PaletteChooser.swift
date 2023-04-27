@@ -13,7 +13,7 @@ struct PaletteChooser: View {
 
     @EnvironmentObject var store: PaletteStore // 通过注入到视图的方式获取store(model)
 
-    @State private var chosenPaletteIndex = 0 // 当前选择的palette的index
+    @SceneStorage("PaletteChosser.chosenPaletteIndex") private var chosenPaletteIndex = 0 // 当前选择的palette的index
 
     // 整个表情选择栏(主视图)
     var body: some View {
