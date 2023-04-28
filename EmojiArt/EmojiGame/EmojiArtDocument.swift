@@ -8,94 +8,45 @@
 
 import Combine // 用于发布者和订阅者模式
 import SwiftUI
+import UniformTypeIdentifiers
 
-class EmojiArtDocument: ObservableObject {
+extension UTType {
+    static let emojiart = UTType(exportedAs: "nhuji.emojiart")
+}
+
+class EmojiArtDocument: ReferenceFileDocument {
+    static var readableContentTypes = [UTType.emojiart]
+    static var writeableContentTypes = [UTType.emojiart]
+
+    required init(configuration: ReadConfiguration) throws {
+        if let data = configuration.file.regularFileContents {
+            emojiArt = try EmojiArtModel(json: data)
+            fetchBackgroundImageDataIfNecessary()
+        } else {
+            throw CocoaError(.fileReadCorruptFile)
+        }
+    }
+
+    func snapshot(contentType: UTType) throws -> Data {
+        try emojiArt.json() // 如何表示这个文件(直接用doc的json化方法)
+    }
+
+    func fileWrapper(snapshot: Data, configuration: WriteConfiguration) throws -> FileWrapper {
+        FileWrapper(regularFileWithContents: snapshot)
+        // 自动保存的逻辑:emojiArt改变,触发上面的snapshot(另一个线程),再在这里面包裹着
+    }
+
     // @Published表示当emojiArt发生变化时，会自动通知所有的观察者
     @Published private(set) var emojiArt: EmojiArtModel {
         didSet {
-            // 当emojiArt发生变化时,会调用自动保存功能(它会合并更改并在停止更改后一段时间后自动保存)
-            scheduleAutosave()
-            // 当emojiArt发生变化时,会自动调用这里的代码
             if emojiArt.background != oldValue.background {
-                // 如果背景图片发生变化,则重新加载图片
                 fetchBackgroundImageDataIfNecessary()
             }
         }
     }
 
-    // 用于自动保存的timer
-    private var autosaveTimer: Timer?
-
-    private func scheduleAutosave() {
-        // 如果timer已经存在,则取消它(避免每次保存都开始计时,失去合并的意义)
-        autosaveTimer?.invalidate()
-        // 我们不需要timer的引用,所以用_来代替,另外不需要使用weak self
-        autosaveTimer = Timer.scheduledTimer(withTimeInterval: Autosave.coalescingInterval, repeats: false) { _ in
-            self.autosave()
-        }
-    }
-
-    // Autosave用于存储自动保存的文件名和url
-    private enum Autosave {
-        // 定义自动保存文件使用的文件名
-        static let filename = "Autosaved.emojiart"
-        // 计算属性，用于获取自动保存文件的 URL
-        static var url: URL? {
-            // 获取文档目录的URL
-            let documentDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-            // 在文档目录的 URL 后面添加文件名，得到自动保存的文件的URL(也就是之前只是获得文件夹现在加上具体的名称)
-            return documentDirectory?.appendingPathComponent(filename)
-        }
-
-        static let coalescingInterval = 5.0 // 自动保存的时间间隔
-    }
-
-    // 自动保存
-    private func autosave() {
-        // 如果url不为空,则保存到这个url中
-        if let url = Autosave.url {
-            save(to: url)
-        }
-    }
-
-    // 这里的URL和拖入图片的不同,这是文件URL 用于放入本地存储中
-    // 这里不打算再抛出错误了,而是使用do-catch来处理错误
-    private func save(to url: URL) {
-        //  由于可能处理多种错误,所以存储结构名和方法名
-        let thisFunction = "\(String(describing: self)).\(#function))"
-        do {
-            // 将emojiArt模型转换为json格式的数据
-            let data: Data = try emojiArt.json() // 让模型提供一个方法把自己转换为json格式的数据
-            print("\(thisFunction) json=\(String(data: data, encoding: .utf8) ?? "nil")") // 打印json格式的数据
-            // 将数据保存到url中
-            try data.write(to: url)
-            // 在这两个之后表示没有错误
-            print("\(thisFunction) success!")
-        } catch let encodingError where encodingError is EncodingError { // 只捕获 EncodingError 类型的错误
-            print("\(thisFunction) couldn't encode EmojiArt as JsoN because \(encodingError.localizedDescription)")
-        } catch {
-            print("\(thisFunction) error= \(error)")
-        }
-    }
-
     init() {
-        // 首先尝试从本地加载自动保存的数据,如果成功,则使用这个数据,否则使用默认的数据(空白页面)
-        if let url = Autosave.url, let autusavedEmojiArt = try? EmojiArtModel(url: url) {
-            emojiArt = autusavedEmojiArt
-            // 如果加载成功,则尝试加载背景图片
-            fetchBackgroundImageDataIfNecessary()
-        } else {
-            emojiArt = EmojiArtModel()
-            // 测试用,添加几个不同的emoji
-            emojiArt.addEmoji("👻", at: (-200, 100), size: 80)
-            emojiArt.addEmoji("🎃", at: (100, 0), size: 40)
-            emojiArt.addEmoji("🤡", at: (0, -100), size: 30)
-        }
-
-        // 添加30个类似的测试用例
-        //        for i in 0..<30{
-        //            emojiArt.addEmoji("👻", at: (Int.random(in: -300...300), Int.random(in: -300...300)), size: Int.random(in: 10...100))
-        //        }
+        emojiArt = EmojiArtModel()
     }
 
     // 方便使用EmojiArt.Emoji直接获取emojis
@@ -179,40 +130,56 @@ class EmojiArtDocument: ObservableObject {
 
     // MARK: - Intent(s) 通过这些方法来修改emojiArt
 
-    func setBackground(_ background: EmojiArtModel.Background) {
-        emojiArt.background = background
-        // print("background set to \(background)")
-    }
-
-    func addEmoji(_ emoji: String, at location: (x: Int, y: Int), size: CGFloat) {
-        emojiArt.addEmoji(emoji, at: location, size: Int(size))
-    }
-
-    func moveEmoji(_ emoji: EmojiArtModel.Emoji, by offset: CGSize) {
-        if let index = emojiArt.emojis.index(matching: emoji) {
-            emojiArt.emojis[index].x += Int(offset.width)
-            emojiArt.emojis[index].y += Int(offset.height)
+    func setBackground(_ background: EmojiArtModel.Background, undoManager: UndoManager?) {
+        undoablyPerform(operation: "Set Background", with: undoManager) {
+            emojiArt.background = background
         }
     }
 
-//    func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat) {
-//        if let index = emojiArt.emojis.index(matching: emoji) {
-//            emojiArt.emojis[index].size = Int((CGFloat(emojiArt.emojis[index].size) * scale).rounded(.toNearestOrAwayFromZero))
-//        }
-//    }
+    func addEmoji(_ emoji: String, at location: (x: Int, y: Int), size: CGFloat, undoManager: UndoManager?) {
+        undoablyPerform(operation: "Add \(emoji)", with: undoManager) {
+            emojiArt.addEmoji(emoji, at: location, size: Int(size))
+        }
+    }
+
+    func moveEmoji(_ emoji: EmojiArtModel.Emoji, by offset: CGSize, undoManager: UndoManager?) {
+        if let index = emojiArt.emojis.index(matching: emoji) {
+            undoablyPerform(operation: "Move", with: undoManager) {
+                emojiArt.emojis[index].x += Int(offset.width)
+                emojiArt.emojis[index].y += Int(offset.height)
+            }
+        }
+    }
+
     // 我自己的修改,加入了限制表情最大最小大小的功能
     private let minEmojiSize: CGFloat = 10
     private let maxEmojiSize: CGFloat = 600
 
-    func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat) {
+    func scaleEmoji(_ emoji: EmojiArtModel.Emoji, by scale: CGFloat, undoManager: UndoManager?) {
         if let index = emojiArt.emojis.index(matching: emoji) {
             var newSize = CGFloat(emojiArt.emojis[index].size) * scale
             newSize = min(max(newSize, minEmojiSize), maxEmojiSize) // 限制大小在[minEmojiSize, maxEmojiSize]范围内
-            emojiArt.emojis[index].size = Int(newSize.rounded(.toNearestOrAwayFromZero))
+            undoablyPerform(operation: "Scale", with: undoManager) {
+                emojiArt.emojis[index].size = Int(newSize.rounded(.toNearestOrAwayFromZero))
+            }
         }
     }
 
     func deleteEmoji(_ emoji: EmojiArtModel.Emoji) {
         emojiArt.deleteEmoji(emoji)
+    }
+
+    // MARK: - Undo
+
+    private func undoablyPerform(operation: String, with undoManager: UndoManager? = nil, doit: () -> Void) {
+        let oldEmojiArt = emojiArt // 获得model的一个副本
+        doit() // 执行闭包(也就是修改model的操作)
+        undoManager?.registerUndo(withTarget: self) { myself in
+            // 实现redo
+            myself.undoablyPerform(operation: operation, with: undoManager) {
+                myself.emojiArt = oldEmojiArt // 让model回到撤消前的状态
+            }
+        }
+        undoManager?.setActionName(operation) // 设置撤消的操作名(macOS中会显示在菜单栏中)
     }
 }

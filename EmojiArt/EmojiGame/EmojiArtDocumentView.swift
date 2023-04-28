@@ -12,6 +12,8 @@ struct EmojiArtDocumentView: View {
     // 通过@ObservedObject来观察document的变化,document是EmojiArtDocument(MVVM的VM)
     @ObservedObject var document: EmojiArtDocument
 
+    @Environment(\.undoManager) var undoManager
+
     @ScaledMetric var defaultEmojiFontSize: CGFloat = 40
 
     // app的主体视图
@@ -77,6 +79,13 @@ struct EmojiArtDocumentView: View {
                     zoomToFit(image, in: geometry.size)
                 }
             }
+            // 撤消和重做按扭
+            .toolbar {
+                UndoButton( // UndoButton是自定义的(EmojiArt/Utility/UtilityViews.swift)
+                    undo: undoManager?.optionalUndoMenuItemTitle,
+                    redo: undoManager?.optionalRedoMenuItemTitle
+                )
+            }
         }
     }
 
@@ -117,14 +126,14 @@ struct EmojiArtDocumentView: View {
         var found = providers.loadFirstObject(ofType: URL.self) { url in
             // 如果是图片url,则添加图片背景
             autozoom = true // 起动自动缩放
-            document.setBackground(EmojiArtModel.Background.url(url.imageURL))
+            document.setBackground(EmojiArtModel.Background.url(url.imageURL), undoManager: undoManager)
         }
 
         if !found {
             found = providers.loadFirstObject(ofType: UIImage.self) { image in
                 if let data = image.jpegData(compressionQuality: 1.0) {
                     // 如果是图片,则添加图片背景
-                    document.setBackground(.imageData(data)) // 可以省略EmojiArtModel.Background,swift能够推断出来
+                    document.setBackground(.imageData(data), undoManager: undoManager) // 可以省略EmojiArtModel.Background,swift能够推断出来
                 }
             }
         }
@@ -137,7 +146,7 @@ struct EmojiArtDocumentView: View {
                     document.addEmoji(
                         String(emoji),
                         at: convertToEmojiCoordinates(location, in: geometry),
-                        size: defaultEmojiFontSize / zoomScale // 适应缩放比例,保持表情大小不变
+                        size: defaultEmojiFontSize / zoomScale, undoManager: undoManager // 适应缩放比例,保持表情大小不变
                     ) // 添加表情
                 }
             }
@@ -159,7 +168,7 @@ struct EmojiArtDocumentView: View {
             }
             .onEnded { finalDragGestureValue in
                 for emojiId in selectedEmojis {
-                    document.moveEmoji(emojiId, by: finalDragGestureValue.translation / zoomScale)
+                    document.moveEmoji(emojiId, by: finalDragGestureValue.translation / zoomScale, undoManager: undoManager)
                 }
             }
     }
@@ -320,7 +329,7 @@ struct EmojiArtDocumentView: View {
                     steadyStateZoomScale *= gestureScaleEnd // 更新缩放比例
                 } else { // 如果选中了表情,则缩放表情
                     selectedEmojis.forEach { emoji in
-                        document.scaleEmoji(emoji, by: gestureScaleEnd)
+                        document.scaleEmoji(emoji, by: gestureScaleEnd, undoManager: undoManager)
                     }
                 }
             }
