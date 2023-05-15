@@ -47,6 +47,12 @@ class EmojiArtDocument: ReferenceFileDocument {
 
     init() {
         emojiArt = EmojiArtModel()
+        // 添加3000个随机的emoji
+//        for _ in 0 ..< 3000 {
+//            let emojis = ["👻", "😀", "😎", "🐶", "🐱", "🦁", "🐯", "🐻", "🐼", "🐨"]
+//            let randomEmoji = emojis.randomElement()!
+//            emojiArt.addEmoji(randomEmoji, at: (Int.random(in: -300...300), Int.random(in: -300...300)), size: Int.random(in: 1...5))
+//        }
     }
 
     // 方便使用EmojiArt.Emoji直接获取emojis

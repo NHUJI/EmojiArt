@@ -14,10 +14,10 @@ import SwiftUI
 
 struct OptionalImage: View {
     var uiImage: UIImage?
-    
+
     var body: some View {
-        if uiImage != nil {
-            Image(uiImage: uiImage!)
+        if self.uiImage != nil {
+            Image(uiImage: self.uiImage!)
         }
     }
 }
@@ -34,19 +34,19 @@ struct AnimatedActionButton: View {
     var title: String? = nil
     var systemImage: String? = nil
     let action: () -> Void
-    
+
     var body: some View {
         Button {
             withAnimation {
-                action()
+                self.action()
             }
         } label: {
-            if title != nil && systemImage != nil {
-                Label(title!, systemImage: systemImage!)
-            } else if title != nil {
-                Text(title!)
-            } else if systemImage != nil {
-                Image(systemName: systemImage!)
+            if self.title != nil && self.systemImage != nil {
+                Label(self.title!, systemImage: self.systemImage!)
+            } else if self.title != nil {
+                Text(self.title!)
+            } else if self.systemImage != nil {
+                Image(systemName: self.systemImage!)
             }
         }
     }
@@ -72,18 +72,18 @@ struct IdentifiableAlert: Identifiable {
 struct UndoButton: View {
     let undo: String?
     let redo: String?
-    
+
     @Environment(\.undoManager) var undoManager
-    
+
     var body: some View {
-        let canUndo = undoManager?.canUndo ?? false
-        let canRedo = undoManager?.canRedo ?? false
+        let canUndo = self.undoManager?.canUndo ?? false
+        let canRedo = self.undoManager?.canRedo ?? false
         if canUndo || canRedo {
             Button {
                 if canUndo {
-                    undoManager?.undo()
+                    self.undoManager?.undo()
                 } else {
-                    undoManager?.redo()
+                    self.undoManager?.redo()
                 }
             } label: {
                 if canUndo {
@@ -92,22 +92,22 @@ struct UndoButton: View {
                     Image(systemName: "arrow.uturn.forward.circle")
                 }
             }
-                .contextMenu {
-                    if canUndo {
-                        Button {
-                            undoManager?.undo()
-                        } label: {
-                            Label(undo ?? "Undo", systemImage: "arrow.uturn.backward")
-                        }
-                    }
-                    if canRedo {
-                        Button {
-                            undoManager?.redo()
-                        } label: {
-                            Label(redo ?? "Redo", systemImage: "arrow.uturn.forward")
-                        }
+            .contextMenu {
+                if canUndo {
+                    Button {
+                        self.undoManager?.undo()
+                    } label: {
+                        Label(self.undo ?? "Undo", systemImage: "arrow.uturn.backward")
                     }
                 }
+                if canRedo {
+                    Button {
+                        self.undoManager?.redo()
+                    } label: {
+                        Label(self.redo ?? "Redo", systemImage: "arrow.uturn.forward")
+                    }
+                }
+            }
         }
     }
 }
@@ -116,7 +116,37 @@ extension UndoManager {
     var optionalUndoMenuItemTitle: String? {
         canUndo ? undoMenuItemTitle : nil // 无法撤回时返回nil
     }
+
     var optionalRedoMenuItemTitle: String? {
         canRedo ? redoMenuItemTitle : nil
+    }
+}
+
+extension View {
+    @ViewBuilder
+    func wrappedInNavigationViewToMakeDismissable(_ dismiss: (() -> Void)?) -> some View {
+        if UIDevice.current.userInterfaceIdiom != .pad, let dismiss = dismiss { // 只在iphone上显示关闭按扭
+            NavigationStack {
+                self
+                    .navigationBarTitleDisplayMode(.inline)
+                    .dismissable(dismiss)
+            }
+            // .navigationViewStyle(StackNavigationViewStyle()) // 避免出现横屏时分隔显示(我没有出现这个问题,只是冗余设计,不过已经随着NavigationView废弃了)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func dismissable(_ dismiss: (() -> Void)?) -> some View {
+        if UIDevice.current.userInterfaceIdiom != .pad, let dismiss = dismiss { // 只在iphone上显示关闭按扭
+            self.toolbar {
+                ToolbarItem(placement: .cancellationAction) { // 没使用.navigationBarLeading而是让swiftUI决定放置位置(适用平台更多)
+                    Button("Close") { dismiss() } // 使用传入的关闭函数
+                }
+            }
+        } else {
+            self
+        }
     }
 }

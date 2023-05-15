@@ -80,20 +80,22 @@ struct PaletteChooser: View {
         }
         .id(palette.id) // 相当于让这个view identifiable,这样就可以使用transition了(因为之前只是在更新里面的值并没有改变view)
         .transition(rollTransition) // 设置切换动画
-        // .popover(isPresented: $editing) { // 弹出表情编辑器(如果改用sheet的话不会有小尖头)
-        //     PaletteEditor(palette: $store.palettes[chosenPaletteIndex]) // 通过binding的方式传递数据(而不是传递副本)
-
-        // }
         .popover(item: $paletteToEdit) { palette in // palette必须是可识别的(identifiable)
             PaletteEditor(palette: $store.palettes[palette]) // 当paletteToEdit是nil时,这里不会被执 行
+                .wrappedInNavigationViewToMakeDismissable { // 通过自定义的扩展,让表情编辑器可以被dismiss
+                    paletteToEdit = nil // 参数
+                }
         } // popover倾向于让自己越小越好,所以需要设置frame
+        .sheet(isPresented: $managing) { // 放到按钮上也行,只是个弹出窗口
+            PaletteManager().environmentObject(store)
+        }
+        // .popover(isPresented: $editing) { // 弹出表情编辑器(如果改用sheet的话不会有小尖头)
+        //     PaletteEditor(palette: $store.palettes[chosenPaletteIndex]) // 通过binding的方式传递数据(而不是传递副本)
+        // }
         // editing每次改变时都打印出来 (测试发现似乎popover会自己在点击其他区域时修改editing的值为false)
         // .onChange(of: editing) { editing in
         //     print("PaletteChooser: editing = \(editing)")
         // }
-        .sheet(isPresented: $managing) { // 放到按钮上也行,只是个弹出窗口
-            PaletteManager().environmentObject(store)
-        }
     }
 
     // @State private var editing = false // 控制表情编辑器的显示

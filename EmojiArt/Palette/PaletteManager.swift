@@ -22,7 +22,7 @@ struct PaletteManager: View {
     @State private var editMode: EditMode = .inactive
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             List { // 和VStack有点类似,不过可以支持很多特性
                 ForEach(store.palettes) { palette in
                     // 点击跳转到编辑框(复用) ,NavigationLink只在NavigationView中有效
@@ -31,10 +31,10 @@ struct PaletteManager: View {
                             Text(palette.name)
                             // .font(editMode == .active ? .largeTitle : .caption)
                             Text(palette.emojis)
-                        } 
+                        }
                         // tapping when NOT in editMode will follow the NavigationLink
                         // (that's why gesture is set to nil in that case)
-                    
+
                         .gesture(editMode == .active ? tap : nil)
                     }
                 }
@@ -50,22 +50,14 @@ struct PaletteManager: View {
             // .environment(\.colorScheme, .dark) // 设置环境变量(只对注入的view有效)
             .toolbar {
                 ToolbarItem { EditButton() } // 用于编辑模式切换按钮(swiftUI自带)
-                ToolbarItem(placement: .navigationBarLeading) { // 按钮位置
-                    if presentationMode.wrappedValue.isPresented, // 由于是绑定,通过wrappedValue来查看值,如果是presented就显示返回按钮
-                       UIDevice.current.userInterfaceIdiom != .pad
-                    { // 如果是iPad就不显示返回按钮(iPad可以直接点击空白区域关闭)
-                        Button("Close") {
-                            presentationMode.wrappedValue.dismiss() // 用dismiss来关闭页面
-                        }
-                    }
-                }
             }
+            .dismissable { presentationMode.wrappedValue.dismiss() }
             .environment(\.editMode, $editMode) // 使用了绑定来修改和显示编辑模式
         }
     }
 
     var tap: some Gesture {
-        TapGesture().onEnded { }
+        TapGesture().onEnded {}
     }
 }
 
