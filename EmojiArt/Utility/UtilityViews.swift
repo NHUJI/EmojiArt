@@ -63,6 +63,23 @@ struct AnimatedActionButton: View {
 struct IdentifiableAlert: Identifiable {
     var id: String
     var alert: () -> Alert
+
+    init(id: String, alert: @escaping () -> Alert) {
+        self.id = id
+        self.alert = alert
+    }
+
+    // L15 convenience init added between L14 and L15
+    init(id: String, title: String, message: String) {
+        self.id = id
+        alert = { Alert(title: Text(title), message: Text(message), dismissButton: .default(Text("OK"))) }
+    }
+
+    // L15 convenience init added between L14 and L15
+    init(title: String, message: String) {
+        id = title + message
+        alert = { Alert(title: Text(title), message: Text(message), dismissButton: .default(Text("OK"))) }
+    }
 }
 
 // a button that does undo (preferred) or redo
@@ -140,13 +157,45 @@ extension View {
     @ViewBuilder
     func dismissable(_ dismiss: (() -> Void)?) -> some View {
         if UIDevice.current.userInterfaceIdiom != .pad, let dismiss = dismiss { // 只在iphone上显示关闭按扭
-            self.toolbar {
+            toolbar {
                 ToolbarItem(placement: .cancellationAction) { // 没使用.navigationBarLeading而是让swiftUI决定放置位置(适用平台更多)
                     Button("Close") { dismiss() } // 使用传入的关闭函数
                 }
             }
         } else {
             self
+        }
+    }
+}
+
+extension View {
+    // 让它变成generic func，然后来指定这个"dont care"为view,另外不是直接传入content,而是接收一个ViewBuilder闭包，这个闭包返回一个view
+    func compactableToolbar<Content>(@ViewBuilder content: () -> Content) -> some View where Content: View {
+        toolbar {
+            content().modifier(CompactableIntoContextMenu()) // content就是传入的ViewBuilder
+        }
+    }
+}
+
+struct CompactableIntoContextMenu: ViewModifier {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
+
+    var compact: Bool { // 是否是紧凑模式
+        horizontalSizeClass == .compact
+    }
+
+    func body(content: Content) -> some View {
+        if compact { // 只在紧凑模式下显示菜单
+            Button {
+                // do nothing
+            } label: {
+                Image(systemName: "ellipsis.circle")
+            }
+            .contextMenu {
+                content
+            }
+        } else {
+            content
         }
     }
 }

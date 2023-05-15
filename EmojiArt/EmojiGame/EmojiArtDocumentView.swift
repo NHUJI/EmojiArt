@@ -22,18 +22,21 @@ struct EmojiArtDocumentView: View {
             documentBody
             PaletteChooser(emojiFontSize: defaultEmojiFontSize)
         }
+        .navigationBarTitleDisplayMode(.inline) // 让文件标题显示在栏内
+        // .toolbarBackground(Color.red, for: .automatic)
+        .toolbarBackground(Visibility.visible, for: .automatic)
     }
 
     var documentBody: some View {
         GeometryReader { geometry in
             ZStack {
                 // 背景图片,使用了扩展的OptionalImage替代Image以接收可选值
-                // 使用了overlay,所以如果背景图片为空,则会显示白色
-                Color.white.overlay(
-                    OptionalImage(uiImage: document.backgroundImage)
-                        .scaleEffect(zoomScale) // 缩放
-                        .position(convertFromEmojiCoordinates((0, 0), in: geometry))
-                ).gesture(doubleTapToZoom(in: geometry.size).simultaneously(with: deleteSelectedEmojis())) // 双击缩放背景图片到合适大小
+                Color.white
+                // 不需要使用overlay显示背景图了,因为OptionalImage是可选的
+                OptionalImage(uiImage: document.backgroundImage)
+                    .scaleEffect(zoomScale) // 缩放
+                    .position(convertFromEmojiCoordinates((0, 0), in: geometry))
+                    .gesture(doubleTapToZoom(in: geometry.size).simultaneously(with: deleteSelectedEmojis())) // 双击缩放背景图片到合适大小
                 // 显示背景图片加载状态
                 if document.backgroundImageFetchStatus == .fetching {
                     ProgressView().scaleEffect(2) // 加载图标
@@ -79,13 +82,40 @@ struct EmojiArtDocumentView: View {
                     zoomToFit(image, in: geometry.size)
                 }
             }
-            // 撤消和重做按扭
-            .toolbar {
-                UndoButton( // UndoButton是自定义的(EmojiArt/Utility/UtilityViews.swift)
-                    undo: undoManager?.optionalUndoMenuItemTitle,
-                    redo: undoManager?.optionalRedoMenuItemTitle
-                )
+            // 撤消和重做按扭,粘贴背景按扭
+            .compactableToolbar {
+                AnimatedActionButton(title: "Paste Background", systemImage: "doc.on.clipboard") {
+                    pasteBackground()
+                }
+                if let undoManager = undoManager { // 避免使用undoManager != nil需要让undoManager成为可选值
+                    if undoManager.canUndo {
+                        AnimatedActionButton(title: undoManager.undoActionName, systemImage: "arrow.uturn.backward") {
+                            undoManager.undo()
+                        }
+                    }
+                    if undoManager.canRedo {
+                        AnimatedActionButton(title: undoManager.redoActionName, systemImage: "arrow.uturn.forward") {
+                            undoManager.redo()
+                        }
+                    }
+                }
             }
+        }
+    }
+
+    private func pasteBackground() {
+        // 粘贴背景图片
+        if let imageData = UIPasteboard.general.image?.jpegData(compressionQuality: 1.0) {
+            document.setBackground(.imageData(imageData), undoManager: undoManager)
+            autozoom = true
+        } else if let url = UIPasteboard.general.url?.imageURL {
+            document.setBackground(.url(url), undoManager: undoManager)
+            autozoom = true
+        } else {
+            alertToShow = IdentifiableAlert(
+                title: "Paste Background",
+                message: "There is no image currently on the pasteboard."
+            )
         }
     }
 
