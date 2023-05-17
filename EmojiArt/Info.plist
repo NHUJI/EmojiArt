@@ -40,6 +40,8 @@
 	</array>
 	<key>UISupportsDocumentBrowser</key>
 	<true/>
+	<key>NSCameraUsageDescription</key>
+	<string>我们需要访问您的相机，以便您能够拍照并将照片上传到应用中</string>
 	<key>UTImportedTypeDeclarations</key>
 	<array>
 		<dict>

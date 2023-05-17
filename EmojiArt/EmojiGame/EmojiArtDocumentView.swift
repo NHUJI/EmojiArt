@@ -82,10 +82,23 @@ struct EmojiArtDocumentView: View {
                     zoomToFit(image, in: geometry.size)
                 }
             }
+
+            // MARK: - 工具栏
+
             // 撤消和重做按扭,粘贴背景按扭
             .compactableToolbar {
                 AnimatedActionButton(title: "Paste Background", systemImage: "doc.on.clipboard") {
                     pasteBackground()
+                }
+                if Camera.isAvailable { // 这里的Camera就是Camera.swift文件
+                    AnimatedActionButton(title: "Camera", systemImage: "camera") {
+                        backgroundPicker = .camera
+                    }
+                }
+                if PhotoLibrary.isAvailable {
+                    AnimatedActionButton(title: "Search Photos", systemImage: "photo") {
+                        backgroundPicker = .library
+                    }
                 }
                 if let undoManager = undoManager { // 避免使用undoManager != nil需要让undoManager成为可选值
                     if undoManager.canUndo {
@@ -100,7 +113,35 @@ struct EmojiArtDocumentView: View {
                     }
                 }
             }
+            .sheet(item: $backgroundPicker) { pickerType in // 用于弹出相机, 图库
+                switch pickerType {
+                    case .camera:
+                        Camera(handlePickedImage: { image in
+                            handlePickedBackgroundImage(image)
+                        })
+                    case .library: // 图库
+                        PhotoLibrary(handlePickedImage: { image in
+                            handlePickedBackgroundImage(image)
+                        })
+                }
+            }
         }
+    }
+
+    private func handlePickedBackgroundImage(_ image: UIImage?) {
+        autozoom = true // 自动缩放
+        if let imageData = image?.jpegData(compressionQuality: 1.0) {
+            document.setBackground(.imageData(imageData), undoManager: undoManager)
+        }
+        backgroundPicker = nil
+    }
+
+    @State private var backgroundPicker: BackgroundPickerType?
+
+    enum BackgroundPickerType: Identifiable {
+        case camera
+        case library
+        var id: BackgroundPickerType { self } // 让id等于自身,也可以用String{ rawValue }
     }
 
     private func pasteBackground() {
